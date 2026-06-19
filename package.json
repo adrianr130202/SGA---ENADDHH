@@ -2,6 +2,7 @@
   "name": "sga-project",
   "version": "1.0.0",
   "description": "",
+  "private": true,
   "main": "index.js",
   "scripts": {
     "client:dev": "npm run dev -w client",

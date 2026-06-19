@@ -33,7 +33,7 @@ try {
   correoUsuario = JSON.parse(payloadDecodificado).email;
 
   // Petición al backend usando el token de autorización
-  const response = await fetch('http://localhost:3000/api/enrollments', {
+  const response = await fetch('https://sga-backend-api.onrender.com/api/enrollments', {
     method: 'GET',
     headers: {
       'Authorization': `Bearer ${tokenCookie.value}`
@@ -293,7 +293,7 @@ const getStatusIcon = (status: string) => STATUS_ICONS[status.toLowerCase()] || 
         btnSubmit.disabled = true;
         btnSubmit.textContent = 'Actualizando...';
 
-        const res = await fetch(`http://localhost:3000/api/enrollments/${id}/status`, {
+        const res = await fetch(`https://sga-backend-api.onrender.com/api/enrollments/${id}/status`, {
           method: 'PUT',
           headers: { 
             'Content-Type': 'application/json', 
