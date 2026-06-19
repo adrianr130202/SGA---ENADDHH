@@ -1,0 +1,71 @@
+---
+import PageLayout from '../Layout/PageLayout.astro';
+---
+
+<PageLayout title="Inicio">
+
+  <main class="min-h-[calc(100vh-65px)] bg-slate-50 dark:bg-slate-900 flex flex-col transition-colors duration-300">
+
+    <section class="flex-1 flex flex-col items-center justify-center px-6 py-6 text-center">
+
+      <div 
+        class="w-16 h-16 bg-blue-900 dark:bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg mb-4 transition-colors"
+        aria-hidden="true"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path d="M12 14l9-5-9-5-9 5 9 5z"/>
+          <path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/>
+        </svg>
+      </div>
+
+      <span class="inline-flex items-center gap-2 bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900/50 text-blue-900 dark:text-blue-400 text-xs font-semibold px-3 py-1.5 rounded-full mb-4 transition-colors">
+        <span class="w-1.5 h-1.5 bg-blue-900 dark:bg-blue-400 rounded-full" aria-hidden="true"></span>
+        Escuela Nacional de los Derechos Humanos
+      </span>
+
+      <h1 class="text-3xl md:text-5xl font-extrabold text-slate-800 dark:text-slate-100 tracking-tight mb-3 max-w-3xl leading-tight transition-colors">
+        Sistema de Gestión<br/>
+        <span class="text-blue-900 dark:text-blue-400">Académica</span>
+      </h1>
+
+      <p class="text-sm md:text-base text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed mb-8 transition-colors">
+        Plataforma integral que centraliza y optimiza el ciclo de vida educativo dentro de la
+        <strong class="text-slate-700 dark:text-slate-300 font-semibold transition-colors">Escuela Nacional de los Derechos Humanos</strong>,
+        sustituyendo procesos manuales por un entorno digital robusto y eficiente.
+      </p>
+
+      <div class="flex flex-wrap items-center justify-center gap-3 mt-4">
+        <a
+          href="/login"
+          aria-label="Ir a la página de inicio de sesión"
+          class="flex items-center gap-2 bg-blue-900 hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-500 active:scale-[0.98] text-white text-sm font-bold px-6 py-2.5 rounded-lg shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
+          </svg>
+          Iniciar Sesión
+        </a>
+        
+        <a
+          href="/signup"
+          aria-label="Ir a la página de registro"
+          class="flex items-center gap-2 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 active:scale-[0.98] text-slate-700 dark:text-slate-200 text-sm font-bold px-6 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 dark:focus:ring-offset-slate-900"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
+          </svg>
+          Crear cuenta
+        </a>
+      </div>
+    </section>
+
+    <footer class="border-t border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-6 py-3 text-center transition-colors duration-300 shrink-0">
+      <div class="max-w-5xl mx-auto">
+        <p class="text-xs text-slate-400 dark:text-slate-500 transition-colors">
+           © 2026 <span class="font-medium text-slate-800 dark:text-slate-300 transition-colors">ENADDHH</span> - Escuela Nacional de los Derechos Humanos
+        </p>
+      </div>   
+    </footer>
+
+  </main>
+</PageLayout>

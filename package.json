@@ -1,0 +1,27 @@
+{
+  "name": "sga-project",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "client:dev": "npm run dev -w client",
+    "api:dev": "npm run dev -w api"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "workspaces": [
+    "apps/*"
+  ],
+  "devDependencies": {
+    "vite": "^7.0.0"
+  },
+  "overrides": {
+    "vite": "^7.0.0"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "pg": "^8.21.0"
+  }
+}

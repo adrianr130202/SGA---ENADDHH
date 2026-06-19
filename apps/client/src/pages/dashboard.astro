@@ -1,0 +1,509 @@
+---
+import DashboardLayout from '../Layout/DashboardLayout.astro';
+
+const tokenCookie = Astro.cookies.get('token_sga');
+//  Si no hay cookie o está corrupta, lo mandamos al login
+if (!tokenCookie || !tokenCookie.value.includes('.')) {
+  return Astro.redirect('/');
+}
+
+let correoUsuario = "Administrador";
+let diplomados: any[] = [];
+let stats = { estudiantes: 0, diplomados: 0, inscripciones: 0, certificados: 0 };
+let datosGrafico: any[] = [];
+let actividadReciente: any[] = [];
+ 
+try {
+  const payloadBase64 = tokenCookie.value.split('.')[1];
+  const payloadDecodificado = Buffer.from(payloadBase64, 'base64').toString('utf-8');
+  correoUsuario = JSON.parse(payloadDecodificado).email;
+ 
+  const coursesResponse = await fetch('http://localhost:3000/api/courses', {
+    headers: { 'Authorization': `Bearer ${tokenCookie.value}` }
+  });
+  if (coursesResponse.ok) diplomados = await coursesResponse.json();
+ 
+  const statsResponse = await fetch('http://localhost:3000/api/students/estadisticas', {
+    headers: { 'Authorization': `Bearer ${tokenCookie.value}` }
+  });
+  if (statsResponse.ok) {
+    const dataStats = await statsResponse.json();
+    stats = dataStats.contadores;
+    datosGrafico = dataStats.grafico;
+    actividadReciente = dataStats.actividad || [];
+  }
+} catch (error) {
+  console.error("Error cargando el Dashboard:", error);
+}
+---
+
+<DashboardLayout title="Panel Principal" activePage="dashboard">
+
+  <header class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-10 px-6 h-14 flex items-center justify-between gap-4 shrink-0 transition-colors duration-300">
+    <div>
+      <h1 class="text-sm font-semibold text-slate-800 dark:text-slate-100 leading-tight">Panel de Control</h1>
+      <p class="text-[11px] text-slate-400 dark:text-slate-400 leading-tight">
+        Bienvenido, <span class="font-medium text-blue-900 dark:text-blue-400">{correoUsuario}</span>
+      </p>
+    </div>
+    <button id="btn-nueva-inscripcion" aria-label="Abrir formulario de nueva inscripción" class="flex items-center gap-2 bg-blue-900 hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-500 active:scale-[0.98] text-white text-xs font-semibold px-4 py-2 rounded-lg shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>
+      Nueva Inscripción
+    </button>
+  </header>
+
+  <main class="flex-1 p-6 overflow-y-auto">
+
+    <section class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6" aria-label="Estadísticas generales">
+      
+      <article class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm transition-colors duration-300">
+        <div class="flex items-start justify-between mb-3">
+          <h2 class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Estudiantes</h2>
+          <div class="w-8 h-8 bg-blue-50 dark:bg-slate-700 rounded-lg flex items-center justify-center shrink-0" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>
+            </svg>
+          </div>
+        </div>
+        <p class="text-3xl font-bold text-slate-800 dark:text-white leading-none">{stats.estudiantes}</p>
+      </article>
+
+      <article class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm transition-colors duration-300">
+        <div class="flex items-start justify-between mb-3">
+          <h2 class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Cursos Activos</h2>
+          <div class="w-8 h-8 bg-green-50 dark:bg-slate-700 rounded-lg flex items-center justify-center shrink-0" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+            </svg>
+          </div>
+        </div>
+        <p class="text-3xl font-bold text-slate-800 dark:text-white leading-none">{stats.diplomados}</p>
+      </article>
+
+      <article class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm transition-colors duration-300">
+        <div class="flex items-start justify-between mb-3">
+          <h2 class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Inscripciones</h2>
+          <div class="w-8 h-8 bg-amber-50 dark:bg-slate-700 rounded-lg flex items-center justify-center shrink-0" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+              <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+          </div>
+        </div>
+        <p class="text-3xl font-bold text-slate-800 dark:text-white leading-none">{stats.inscripciones}</p>
+      </article>
+
+      <article class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm transition-colors duration-300">
+        <div class="flex items-start justify-between mb-3">
+          <h2 class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Aprobados</h2>
+          <div class="w-8 h-8 bg-purple-50 dark:bg-slate-700 rounded-lg flex items-center justify-center shrink-0" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="8" r="6"/>
+              <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/>
+            </svg>
+          </div>
+        </div>
+        <p class="text-3xl font-bold text-slate-800 dark:text-white leading-none">{stats.certificados}</p>
+      </article>
+
+    </section>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      
+      <section class="lg:col-span-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm flex flex-col overflow-hidden transition-colors duration-300">
+        <div class="flex items-start justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-700">
+          <div>
+            <h2 class="text-sm font-semibold text-slate-800 dark:text-slate-100">
+              Distribución de Estudiantes
+            </h2>
+            <p class="text-[11px] text-slate-400 mt-0.5">
+              Porcentaje de demanda por diplomado
+            </p>
+          </div>
+          <div id="chart-leader" class="hidden shrink-0 items-center gap-1.5 bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800/50 rounded-lg px-2.5 py-1.5">
+            <span class="text-[10px] font-semibold text-blue-900 dark:text-blue-300 uppercase tracking-wide">Más demandado:</span>
+            <span id="chart-leader-name" class="text-[11px] font-bold text-blue-900 dark:text-blue-200 max-w-[150px] truncate"></span>
+            <span id="chart-leader-count" class="text-[11px] font-black text-blue-900 dark:text-blue-200 bg-blue-100 dark:bg-blue-800/60 rounded px-1.5 py-0.5"></span>
+          </div>
+        </div>
+
+        {datosGrafico.length === 0 ? (
+          <div class="flex-1 flex flex-col items-center justify-center py-16 text-slate-300 dark:text-slate-500">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+              <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2-2h-2a2 2 0 01-2-2z"/>
+            </svg>
+            <p class="text-sm font-medium">No hay datos para graficar</p>
+          </div>
+        ) : (
+          <div class="p-5 flex-1 min-h-[320px] max-h-[320px] flex items-center justify-center relative">
+            <canvas id="coursesChart" aria-label="Gráfico de distribución de estudiantes" role="img"></canvas>
+          </div>
+        )}
+      </section>
+
+      <section class="lg:col-span-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm flex flex-col overflow-hidden transition-colors duration-300">
+        <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-700">
+          <div>
+            <h2 class="text-sm font-semibold text-slate-800 dark:text-slate-100">Actividad Reciente</h2>
+            <p class="text-[11px] text-slate-400">Auditoría del sistema</p>
+          </div>
+          <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse" aria-hidden="true"></div>
+        </div>
+
+        <div class="flex-1 overflow-y-auto max-h-[320px]">
+          <table class="w-full text-sm text-left">
+            <thead class="bg-slate-50 dark:bg-slate-700/50 border-b border-slate-100 dark:border-slate-700">
+              <tr class="text-[10px] font-bold text-slate-500 dark:text-slate-300 uppercase tracking-wider">
+                <th scope="col" class="px-5 py-3">Acción / Evento</th>
+                <th scope="col" class="px-5 py-3 text-right w-36">Hora Local</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+              {actividadReciente.length === 0 ? (
+                <tr>
+                  <td colspan="2" class="px-5 py-8 text-center text-slate-400 dark:text-slate-500">
+                    <div class="flex flex-col items-center justify-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-2 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                        <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                      </svg>
+                      <span class="text-sm font-medium">Sin actividad reciente</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                actividadReciente.map((log: any) => {
+                  const fechaObj = new Date(log.createdAt.replace(' ', 'T'));
+                  const fechaFormateada = fechaObj.toLocaleDateString('es-VE', {
+                    day: 'numeric',
+                    month: 'short',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true
+                  });
+
+                  return (
+                    <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-700/30 transition-colors">
+                      <td class="px-5 py-3.5 text-[11px] font-medium text-slate-700 dark:text-slate-200 whitespace-normal leading-tight">
+                        <div class="flex items-start gap-2">
+                          <span class="w-1.5 h-1.5 rounded-full bg-blue-900 dark:bg-blue-500 shrink-0 mt-1" aria-hidden="true"></span>
+                          {log.description}
+                        </div>
+                      </td>
+                      <td class="px-5 py-3.5 text-right text-slate-400 dark:text-slate-500 font-mono text-[10px] whitespace-nowrap">
+                        {fechaFormateada}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <footer class="mt-8 text-[11px] text-center text-slate-300 dark:text-slate-500">
+      <p>© 2026 Sistema de Gestión Académica — Escuela Nacional de los Derechos Humanos</p>
+    </footer>
+  </main>
+  
+  <div id="modal-inscripcion" role="dialog" aria-labelledby="modal-title" aria-modal="true" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 items-center justify-center p-4">
+    <div id="modal-content" class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg relative overflow-hidden transition-colors duration-300 max-h-[90vh] flex flex-col">
+      <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between bg-white dark:bg-slate-800 shrink-0 z-10">
+        <div>
+          <h2 id="modal-title" class="text-base font-bold text-slate-800 dark:text-white">Registrar y Matricular</h2>
+          <p class="text-xs text-slate-400 mt-0.5">Complete los datos del nuevo estudiante</p>
+        </div>
+        <button type="button" id="btn-cerrar-modal" aria-label="Cerrar formulario" class="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-slate-700 transition-colors font-bold text-lg focus:outline-none focus:ring-2 focus:ring-red-500">
+          &times;
+        </button>
+      </div>
+
+      <div class="overflow-y-auto p-6">
+        <form id="form-inscripcion" class="space-y-4">
+          
+          <div>
+            <label for="est-cedula" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5 uppercase tracking-wide">Cédula</label>
+            <input type="text" id="est-cedula" required class="w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2.5 text-sm text-slate-700 dark:text-white bg-slate-50 dark:bg-slate-700 outline-none focus:border-blue-900 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-900/10 transition placeholder-slate-400 dark:placeholder-slate-400" placeholder="Ej: 12345678"/>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label for="est-p-nombre" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5 uppercase tracking-wide">Primer Nombre</label>
+              <input type="text" id="est-p-nombre" required class="w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2.5 text-sm text-slate-700 dark:text-white bg-slate-50 dark:bg-slate-700 outline-none focus:border-blue-900 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-900/10 transition placeholder-slate-400 dark:placeholder-slate-400" placeholder="Ej: Juan"/>
+            </div>
+            <div>
+              <label for="est-s-nombre" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5 uppercase tracking-wide">Segundo Nombre</label>
+              <input type="text" id="est-s-nombre" class="w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2.5 text-sm text-slate-700 dark:text-white bg-slate-50 dark:bg-slate-700 outline-none focus:border-blue-900 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-900/10 transition placeholder-slate-400 dark:placeholder-slate-400" placeholder="(Opcional)"/>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label for="est-p-apellido" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5 uppercase tracking-wide">Primer Apellido</label>
+              <input type="text" id="est-p-apellido" required class="w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2.5 text-sm text-slate-700 dark:text-white bg-slate-50 dark:bg-slate-700 outline-none focus:border-blue-900 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-900/10 transition placeholder-slate-400 dark:placeholder-slate-400" placeholder="Ej: Pérez"/>
+            </div>
+            <div>
+              <label for="est-s-apellido" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5 uppercase tracking-wide">Segundo Apellido</label>
+              <input type="text" id="est-s-apellido" class="w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2.5 text-sm text-slate-700 dark:text-white bg-slate-50 dark:bg-slate-700 outline-none focus:border-blue-900 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-900/10 transition placeholder-slate-400 dark:placeholder-slate-400" placeholder="(Opcional)"/>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label for="est-correo" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5 uppercase tracking-wide">Correo Electrónico</label>
+              <input type="email" id="est-correo" required class="w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2.5 text-sm text-slate-700 dark:text-white bg-slate-50 dark:bg-slate-700 outline-none focus:border-blue-900 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-900/10 transition placeholder-slate-400 dark:placeholder-slate-400" placeholder="correo@ejemplo.com"/>
+            </div>
+            <div>
+              <label for="est-telefono" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5 uppercase tracking-wide">Teléfono Móvil</label>
+              <input type="text" id="est-telefono" required class="w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2.5 text-sm text-slate-700 dark:text-white bg-slate-50 dark:bg-slate-700 outline-none focus:border-blue-900 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-900/10 transition placeholder-slate-400 dark:placeholder-slate-400" placeholder="Ej: 04141234567"/>
+            </div>
+          </div>
+          
+          <div>
+            <label for="est-diplomado" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5 uppercase tracking-wide">Seleccionar Diplomado</label>
+            <select id="est-diplomado" required class="w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2.5 text-sm text-slate-700 dark:text-white bg-slate-50 dark:bg-slate-700 outline-none focus:border-blue-900 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-900/10 transition cursor-pointer">
+              <option value="" disabled selected class="bg-white dark:bg-slate-700 text-slate-700 dark:text-white">
+                — Elija un programa de la lista —
+              </option>
+              {diplomados.map((curso) => (
+                <option value={curso.id} class="bg-white dark:bg-slate-700 text-slate-700 dark:text-white">
+                  {curso.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <p id="msg-error" aria-live="assertive" class="hidden text-red-600 dark:text-red-400 text-xs font-medium bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2"></p>
+          <p id="msg-exito" aria-live="assertive" class="hidden text-green-700 dark:text-green-400 text-xs font-medium bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg px-3 py-2">✅ Estudiante registrado y matriculado exitosamente.</p>
+          
+          <button type="submit" id="btn-submit-form" class="w-full mt-2 bg-blue-900 hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-500 active:scale-[0.98] text-white text-sm font-bold py-2.5 rounded-lg transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800 disabled:opacity-70 disabled:cursor-not-allowed">
+            Procesar Inscripción
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script is:inline define:vars={{ datosGrafico }}>
+    document.addEventListener('DOMContentLoaded', () => {
+      const canvasElement = document.getElementById('coursesChart');
+      // Asegurarse de que Chart.js esté disponible
+      if (!canvasElement || datosGrafico.length === 0 || typeof Chart === 'undefined') return;
+
+      const sorted = [...datosGrafico].sort((a, b) => b.inscritos - a.inscritos);
+      const etiquetas = sorted.map(item => item.name);
+      const valores   = sorted.map(item => item.inscritos);
+
+      const leader      = document.getElementById('chart-leader');
+      const leaderName  = document.getElementById('chart-leader-name');
+      const leaderCount = document.getElementById('chart-leader-count');
+      if (leader && leaderName && leaderCount && sorted[0]) {
+        leaderName.textContent  = sorted[0].name;
+        leaderCount.textContent = sorted[0].inscritos;
+        leader.classList.remove('hidden');
+        leader.classList.add('flex');
+      }
+
+      const isDark = document.documentElement.classList.contains('dark');
+      const textColor = isDark ? '#e2e8f0' : '#1e293b';
+
+      const bgColors = [
+        'rgba(30, 58, 95, 0.9)',
+        'rgba(59, 130, 246, 0.85)',
+        'rgba(16, 185, 129, 0.85)',
+        'rgba(245, 158, 11, 0.85)',
+        'rgba(139, 92, 246, 0.85)',
+        'rgba(236, 72, 153, 0.85)'
+      ];
+      
+      const chartBgColors = valores.map((_, i) => bgColors[i % bgColors.length]);
+      const chartBorderColors = isDark ? '#1e293b' : '#ffffff';
+
+      const ctx = canvasElement.getContext('2d');
+
+      new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: etiquetas,
+          datasets: [{
+            data: valores,
+            backgroundColor: chartBgColors,
+            borderColor: chartBorderColors,
+            borderWidth: 3,
+            hoverOffset: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '65%',
+          plugins: {
+            legend: {
+              position: 'right',
+              labels: {
+                color: textColor,
+                font: { size: 11 },
+                usePointStyle: true,
+                padding: 20
+              }
+            },
+            tooltip: {
+              backgroundColor: isDark ? '#1e293b' : '#ffffff',
+              titleColor: textColor,
+              bodyColor: isDark ? '#94a3b8' : '#64748b',
+              borderColor: isDark ? '#334155' : '#e2e8f0',
+              borderWidth: 1,
+              padding: 12,
+              callbacks: {
+                label: (context) => {
+                  const valor = context.parsed;
+                  const total = context.dataset.data.reduce((acc, curr) => acc + curr, 0);
+                  const porcentaje = Math.round((valor / total) * 100) + '%';
+                  return ` ${valor} estudiante(s) (${porcentaje})`;
+                }
+              }
+            }
+          }
+        }
+      });
+    });
+  </script>
+
+  <script is:inline>
+    const modalInsc = document.getElementById('modal-inscripcion');
+    const modalContent = document.getElementById('modal-content');
+    const msgError  = document.getElementById('msg-error');
+    const msgExito  = document.getElementById('msg-exito');
+    const btnSubmit = document.getElementById('btn-submit-form');
+    const formInscripcion = document.getElementById('form-inscripcion');
+
+    const openModal = () => {
+      modalInsc.classList.remove('hidden');
+      modalInsc.classList.add('flex');
+      msgError.classList.add('hidden');
+      msgExito.classList.add('hidden');
+      document.body.style.overflow = 'hidden'; // Evita scroll de fondo
+    };
+
+    const closeModal = () => {
+      modalInsc.classList.add('hidden');
+      modalInsc.classList.remove('flex');
+      document.body.style.overflow = ''; // Restaura scroll de fondo
+      formInscripcion.reset(); // Opcional: limpia el formulario al cerrar
+    };
+
+    // Listeners de Apertura y Cierre
+    document.getElementById('btn-nueva-inscripcion').addEventListener('click', openModal);
+    document.getElementById('btn-cerrar-modal').addEventListener('click', closeModal);
+    
+    // Cerrar clickeando fuera del modal
+    modalInsc.addEventListener('click', (e) => {
+      if (e.target === modalInsc) closeModal();
+    });
+
+    // Cerrar con Escape
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !modalInsc.classList.contains('hidden')) {
+        closeModal();
+      }
+    });
+    
+    const getCookie = (name) => {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop().split(';').shift();
+    };
+
+    formInscripcion.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      msgError.classList.add('hidden');
+      msgExito.classList.add('hidden');
+      
+      btnSubmit.disabled = true;
+      btnSubmit.textContent = 'Procesando...';
+
+      const cedula    = document.getElementById('est-cedula').value.trim();
+      const pNombre   = document.getElementById('est-p-nombre').value.trim();
+      const sNombre   = document.getElementById('est-s-nombre').value.trim();
+      const pApellido = document.getElementById('est-p-apellido').value.trim();
+      const sApellido = document.getElementById('est-s-apellido').value.trim();
+      const email     = document.getElementById('est-correo').value.trim();
+      const phone     = document.getElementById('est-telefono').value.trim();
+      const courseId  = document.getElementById('est-diplomado').value;
+      const token     = getCookie('token_sga');
+
+      const formatearNombre = (str) => {
+        if (!str) return '';
+        return str.toLowerCase().split(' ')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+      };
+
+      const regexLetras = /^[a-zA-ZñÑáéíóúÁÉÍÓÚüÜ\s]+$/;
+      
+      if (!regexLetras.test(pNombre) || !regexLetras.test(pApellido)) {
+        msgError.textContent = '⚠️ El primer nombre y primer apellido deben contener solo letras.';
+        msgError.classList.remove('hidden');
+        btnSubmit.disabled = false;
+        btnSubmit.textContent = 'Procesar Inscripción';
+        return;
+      }
+      
+      if ((sNombre && !regexLetras.test(sNombre)) || (sApellido && !regexLetras.test(sApellido))) {
+        msgError.textContent = '⚠️ El segundo nombre y segundo apellido deben contener solo letras.';
+        msgError.classList.remove('hidden');
+        btnSubmit.disabled = false;
+        btnSubmit.textContent = 'Procesar Inscripción';
+        return;
+      }
+
+      if (!/^\d{8}$/.test(cedula)) {
+        msgError.textContent = '⚠️ Cédula inválida. Debe tener 8 dígitos numéricos.';
+        msgError.classList.remove('hidden');
+        btnSubmit.disabled = false;
+        btnSubmit.textContent = 'Procesar Inscripción';
+        return;
+      }
+      
+      if (!/^(0412|0414|0416|0422|0424|0426)\d{7}$/.test(phone)) {
+        msgError.textContent = '⚠️ Formato de teléfono móvil venezolano inválido.';
+        msgError.classList.remove('hidden');
+        btnSubmit.disabled = false;
+        btnSubmit.textContent = 'Procesar Inscripción';
+        return;
+      }
+
+      const arregloNombres = [pNombre, sNombre, pApellido, sApellido].filter(Boolean);
+      const fullName = formatearNombre(arregloNombres.join(' '));
+
+      try {
+        const res = await fetch('http://localhost:3000/api/students', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ cedula, fullName, email, phone, courseId: parseInt(courseId) })
+        });
+        
+        if (res.ok) {
+          msgExito.classList.remove('hidden');
+          // No rehabilitamos el botón para evitar doble click antes de recargar
+          setTimeout(() => window.location.reload(), 1500);
+        } else {
+          const data = await res.json();
+          msgError.textContent = data.error || 'Error al inscribir estudiante.';
+          msgError.classList.remove('hidden');
+          btnSubmit.disabled = false;
+          btnSubmit.textContent = 'Procesar Inscripción';
+        }
+      } catch (err) {
+        msgError.textContent = 'Error de conexión con el servidor.';
+        msgError.classList.remove('hidden');
+        btnSubmit.disabled = false;
+        btnSubmit.textContent = 'Procesar Inscripción';
+      }
+    });
+  </script>
+
+</DashboardLayout>

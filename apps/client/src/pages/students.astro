@@ -1,0 +1,558 @@
+---
+import DashboardLayout from '../Layout/DashboardLayout.astro';
+ 
+const tokenCookie = Astro.cookies.get('token_sga');
+if (!tokenCookie) {
+  return Astro.redirect('/');
+}
+ 
+const url = new URL(Astro.request.url);
+const searchParam = url.searchParams.get('search') || '';
+ 
+let estudiantes: any[] = [];
+let diplomados: any[] = []; 
+let correoUsuario = "Administrador";
+ 
+try {
+  const payloadBase64 = tokenCookie.value.split('.')[1];
+  const payloadDecodificado = Buffer.from(payloadBase64, 'base64').toString('utf-8');
+  correoUsuario = JSON.parse(payloadDecodificado).email;
+ 
+  // Buscar Estudiantes
+  const apiUrl = `http://localhost:3000/api/students${searchParam ? `?search=${searchParam}` : ''}`;
+  const response = await fetch(apiUrl, {
+    method: 'GET',
+    headers: { 'Authorization': `Bearer ${tokenCookie.value}` }
+  });
+  if (response.ok) estudiantes = await response.json();
+
+  // Buscar Diplomados para el cambio
+  const coursesResponse = await fetch('http://localhost:3000/api/courses', {
+    headers: { 'Authorization': `Bearer ${tokenCookie.value}` }
+  });
+  if (coursesResponse.ok) diplomados = await coursesResponse.json();
+
+} catch (error) {
+  console.error("Error al cargar los datos en el servidor de Astro:", error);
+}
+---
+
+<DashboardLayout title="Control de Estudiantes" activePage="students">
+
+  <header class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-10 px-6 h-14 flex items-center justify-between shrink-0 transition-colors duration-300">      
+    <div>
+      <h1 class="text-sm font-semibold text-slate-800 dark:text-slate-100 leading-tight">Sección de Estudiantes</h1>
+      <p class="text-[11px] text-slate-400 dark:text-slate-400 leading-tight">Listado general y búsqueda de participantes</p>
+    </div>
+ 
+    <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 focus-within:border-blue-900 dark:focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-900/10 transition">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-slate-400 dark:text-slate-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input
+          type="text"
+          id="search-input"
+          value={searchParam}
+          placeholder="Buscar por cédula..."
+          aria-label="Buscar estudiante por número de cédula"
+          class="bg-transparent outline-none text-xs text-slate-700 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 w-48"
+        />
+      </div>
+ 
+      <button
+        id="btn-search"
+        aria-label="Ejecutar búsqueda"
+        class="flex items-center gap-1.5 bg-blue-900 hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-500 active:scale-[0.98] text-white text-xs font-semibold px-4 py-2 rounded-lg transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        Buscar
+      </button>
+ 
+      {searchParam && (
+        <a href="/students" aria-label="Limpiar resultados de búsqueda" class="flex items-center gap-1 text-xs text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-medium px-2 py-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+          Limpiar
+        </a>
+      )}
+    </div>
+  </header>
+ 
+  <main class="flex-1 p-6 overflow-y-auto">
+ 
+    {searchParam && (
+      <div class="mb-4 flex items-center gap-2" aria-live="polite">
+        <span class="text-xs text-slate-500 dark:text-slate-400">Resultados para:</span>
+        <span class="bg-blue-50 dark:bg-blue-900/30 text-blue-900 dark:text-blue-400 text-xs font-semibold px-2.5 py-1 rounded-full border border-blue-100 dark:border-blue-800">
+          {searchParam}
+        </span>
+        <span class="text-xs text-slate-400 dark:text-slate-500">— {estudiantes.length} encontrado{estudiantes.length !== 1 ? 's' : ''}</span>
+      </div>
+    )}
+ 
+    <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm overflow-hidden transition-colors duration-300">
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left">
+ 
+          <thead class="bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 dark:border-slate-700">
+            <tr class="text-[11px] font-semibold text-slate-500 dark:text-slate-300 uppercase tracking-wider whitespace-nowrap">
+              <th scope="col" class="px-5 py-3">Cédula</th>
+              <th scope="col" class="px-5 py-3 min-w-[200px]">Nombre Completo</th>
+              <th scope="col" class="px-5 py-3">Correo Electrónico</th>
+              <th scope="col" class="px-5 py-3">Teléfono</th>
+              <th scope="col" class="px-5 py-3 text-center min-w-[220px]">Diplomado Actual</th>
+              <th scope="col" class="px-5 py-3">Fecha Registro</th>
+              <th scope="col" class="px-5 py-3 text-center">Acciones</th>
+            </tr>
+          </thead>
+ 
+          <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+            {estudiantes.length === 0 ? (
+              <tr>
+                <td colspan="7" class="py-16 text-center">
+                  <div class="flex flex-col items-center text-slate-300 dark:text-slate-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                      <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                      <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>
+                    </svg>
+                    <p class="text-sm font-medium text-slate-400 dark:text-slate-400">No se encontraron estudiantes</p>
+                    <p class="text-xs text-slate-300 dark:text-slate-500 mt-1">
+                      {searchParam ? 'Intenta con otro término de búsqueda' : 'Registra el primer estudiante desde el dashboard'}
+                    </p>
+                  </div>
+                </td>
+              </tr>
+            ) : (
+              estudiantes.map((est) => (
+                <tr class="hover:bg-slate-50/80 dark:hover:bg-slate-700/50 transition-colors">
+                  
+                  <td class="px-5 py-3.5 whitespace-nowrap">
+                    <span class="font-semibold text-slate-700 dark:text-slate-200 text-xs bg-slate-100 dark:bg-slate-700 px-2.5 py-1 rounded">
+                      V-{est.cedula}
+                    </span>
+                  </td>
+                  
+                  <td class="px-5 py-3.5 whitespace-nowrap">
+                    <div class="flex items-center gap-2.5">
+                      <div class="w-7 h-7 rounded-full bg-blue-900 dark:bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold shrink-0" aria-hidden="true">
+                        {est.fullName.split(' ').map((n: string) => n[0]).join('').slice(0,2).toUpperCase()}
+                      </div>
+                      <span class="font-medium text-slate-800 dark:text-slate-100 text-sm">{est.fullName}</span>
+                    </div>
+                  </td>
+                  
+                  <td class="px-5 py-3.5 text-slate-500 dark:text-slate-400 text-xs whitespace-nowrap">
+                    {est.email}
+                  </td>
+                  
+                  <td class="px-5 py-3.5 text-slate-500 dark:text-slate-400 text-xs whitespace-nowrap">
+                    {est.phone || <span class="text-slate-300 dark:text-slate-500 italic">No registrado</span>}
+                  </td>
+                  
+                  <td class="px-5 py-3.5 text-center whitespace-nowrap">
+                    {est.courseName ? (
+                      <span class="inline-flex items-center gap-1.5 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-[11px] font-semibold px-2.5 py-1 rounded-md border border-blue-100 dark:border-blue-800/50">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                          <path d="M12 14l9-5-9-5-9 5 9 5z"/><path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/>
+                        </svg>
+                        {est.courseName}
+                      </span>
+                    ) : (
+                      <span class="text-[11px] text-slate-400 dark:text-slate-500 italic bg-slate-50 dark:bg-slate-800 px-2.5 py-1 rounded-md border border-slate-100 dark:border-slate-700">
+                        Sin inscripción
+                      </span>
+                    )}
+                  </td>
+                  
+                  <td class="px-5 py-3.5 text-slate-400 dark:text-slate-500 text-xs whitespace-nowrap">
+                    {new Date(est.createdAt).toLocaleDateString('es-VE')}
+                  </td>
+                  
+                  <td class="px-5 py-3.5 whitespace-nowrap">
+                    <div class="flex items-center justify-center gap-1.5">
+ 
+                      <button
+                        aria-label={`Editar estudiante ${est.fullName}`}
+                        class="btn-editar flex items-center gap-1 text-xs font-medium text-amber-600 dark:text-amber-500 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-slate-700 px-2.5 py-1.5 rounded-lg border border-amber-200 dark:border-amber-700/50 hover:border-amber-300 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500"
+                        data-id={est.id}
+                        data-cedula={est.cedula}
+                        data-fullname={est.fullName}
+                        data-email={est.email}
+                        data-phone={est.phone}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                          <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                        </svg>
+                        Editar
+                      </button>
+
+                      <button
+                        aria-label={`Migrar de diplomado a ${est.fullName}`}
+                        class="btn-migrar-curso flex items-center gap-1 text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-slate-700 px-2.5 py-1.5 rounded-lg border border-emerald-200 dark:border-emerald-800/50 hover:border-emerald-300 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                        data-cedula={est.cedula}
+                        data-name={est.fullName}
+                        data-current={est.courseName || 'Ninguno'}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                          <path d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                        </svg>
+                        Migrar
+                      </button>
+ 
+                      <button
+                        aria-label={`Eliminar estudiante ${est.fullName}`}
+                        class="btn-eliminar flex items-center gap-1 text-xs font-medium text-red-600 dark:text-red-400 hover:text-red-700 hover:bg-red-50 dark:hover:bg-slate-700 px-2.5 py-1.5 rounded-lg border border-red-200 dark:border-red-800/50 hover:border-red-300 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500"
+                        data-id={est.id}
+                        data-name={est.fullName}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                          <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/>
+                        </svg>
+                        Eliminar
+                      </button>
+ 
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+ 
+      {estudiantes.length > 0 && (
+        <div class="px-5 py-3 border-t border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 transition-colors duration-300">
+          <p class="text-xs text-slate-400 dark:text-slate-400">
+            Mostrando <span class="font-semibold text-slate-600 dark:text-slate-300">{estudiantes.length}</span> estudiante{estudiantes.length !== 1 ? 's' : ''}
+            {searchParam && <span> para "<span class="text-blue-900 dark:text-blue-400 font-medium">{searchParam}</span>"</span>}
+          </p>
+        </div>
+      )}
+    </div>
+ 
+    <footer class="mt-8 text-[11px] text-center text-slate-300 dark:text-slate-500">
+      <p>© 2026 Sistema de Gestión Académica — Escuela Nacional de los Derechos Humanos</p>
+    </footer>
+ 
+    <div id="modal-editar" role="dialog" aria-labelledby="modal-edit-title" aria-modal="true" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 items-center justify-center p-4 transition-opacity">
+      <div id="modal-editar-content" class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden transition-colors duration-300 max-h-[90vh] flex flex-col">
+ 
+        <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between bg-white dark:bg-slate-800 shrink-0 z-10">
+          <div>
+            <h2 id="modal-edit-title" class="text-base font-bold text-slate-800 dark:text-white">Modificar Estudiante</h2>
+            <p class="text-xs text-slate-400 dark:text-slate-400 mt-0.5">Actualiza los datos del participante</p>
+          </div>
+          <button type="button" id="btn-cerrar-edit" aria-label="Cerrar ventana de edición" class="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-slate-700 transition-colors text-lg font-bold focus:outline-none focus:ring-2 focus:ring-red-500">
+            &times;
+          </button>
+        </div>
+ 
+        <div class="overflow-y-auto p-6">
+          <form id="form-editar" class="space-y-4">
+            <input type="hidden" id="edit-id">
+  
+            <div>
+              <label for="edit-cedula" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5 uppercase tracking-wide">Cédula de Identidad</label>
+              <input type="text" id="edit-cedula" required placeholder="Ej: 12345678" class="w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2.5 text-sm text-slate-700 dark:text-white bg-slate-50 dark:bg-slate-700 outline-none focus:border-blue-900 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-900/10 transition placeholder-slate-400 dark:placeholder-slate-400"/>
+            </div>
+  
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label for="edit-p-nombre" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5 uppercase tracking-wide">Primer Nombre</label>
+                <input type="text" id="edit-p-nombre" required class="w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2.5 text-sm text-slate-700 dark:text-white bg-slate-50 dark:bg-slate-700 outline-none focus:border-blue-900 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-900/10 transition placeholder-slate-400 dark:placeholder-slate-400" placeholder="Ej: Juan"/>
+              </div>
+              <div>
+                <label for="edit-s-nombre" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5 uppercase tracking-wide">Segundo Nombre</label>
+                <input type="text" id="edit-s-nombre" class="w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2.5 text-sm text-slate-700 dark:text-white bg-slate-50 dark:bg-slate-700 outline-none focus:border-blue-900 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-900/10 transition placeholder-slate-400 dark:placeholder-slate-400" placeholder="(Opcional)"/>
+              </div>
+            </div>
+  
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label for="edit-p-apellido" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5 uppercase tracking-wide">Primer Apellido</label>
+                <input type="text" id="edit-p-apellido" required class="w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2.5 text-sm text-slate-700 dark:text-white bg-slate-50 dark:bg-slate-700 outline-none focus:border-blue-900 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-900/10 transition placeholder-slate-400 dark:placeholder-slate-400" placeholder="Ej: Pérez"/>
+              </div>
+              <div>
+                <label for="edit-s-apellido" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5 uppercase tracking-wide">Segundo Apellido</label>
+                <input type="text" id="edit-s-apellido" class="w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2.5 text-sm text-slate-700 dark:text-white bg-slate-50 dark:bg-slate-700 outline-none focus:border-blue-900 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-900/10 transition placeholder-slate-400 dark:placeholder-slate-400" placeholder="(Opcional)"/>
+              </div>
+            </div>
+  
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label for="edit-correo" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5 uppercase tracking-wide">Correo Electrónico</label>
+                <input type="email" id="edit-correo" required placeholder="correo@ejemplo.com" class="w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2.5 text-sm text-slate-700 dark:text-white bg-slate-50 dark:bg-slate-700 outline-none focus:border-blue-900 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-900/10 transition placeholder-slate-400 dark:placeholder-slate-400"/>
+              </div>
+              <div>
+                <label for="edit-telefono" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5 uppercase tracking-wide">Teléfono Móvil</label>
+                <input type="text" id="edit-telefono" required placeholder="Ej: 04141234567" class="w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2.5 text-sm text-slate-700 dark:text-white bg-slate-50 dark:bg-slate-700 outline-none focus:border-blue-900 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-900/10 transition placeholder-slate-400 dark:placeholder-slate-400"/>
+              </div>
+            </div>
+  
+            <p id="edit-error" aria-live="assertive" class="hidden text-red-600 dark:text-red-400 text-xs font-medium bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2 transition-colors"></p>
+  
+            <div class="flex gap-3 pt-1">
+              <button type="button" id="btn-cancelar-edit" class="flex-1 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 py-2.5 rounded-lg text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400">Cancelar</button>
+              <button type="submit" id="btn-submit-edit" class="flex-1 bg-blue-900 hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-500 text-white py-2.5 rounded-lg text-sm font-bold transition-colors disabled:opacity-70 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500">Actualizar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div id="modal-migrar" role="dialog" aria-labelledby="modal-migrar-title" aria-modal="true" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 items-center justify-center p-4 transition-opacity">
+      <div id="modal-migrar-content" class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden transition-colors duration-300">
+        
+        <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+          <div>
+            <h2 id="modal-migrar-title" class="text-base font-bold text-slate-800 dark:text-white">Cambiar de Diplomado</h2>
+            <p class="text-xs text-slate-400 dark:text-slate-400 mt-0.5">Asignar nueva inscripción al estudiante</p>
+          </div>
+          <button type="button" id="btn-cerrar-migrar" aria-label="Cerrar ventana de migración" class="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-slate-700 transition-colors text-lg font-bold focus:outline-none focus:ring-2 focus:ring-red-500">&times;</button>
+        </div>
+
+        <form id="form-migrar" class="px-6 py-5 space-y-4">
+          <input type="hidden" id="migrar-cedula">
+          
+          <div class="bg-slate-50 dark:bg-slate-700/50 p-3 rounded-lg border border-slate-100 dark:border-slate-700">
+            <p class="text-[11px] text-slate-500 dark:text-slate-400 uppercase font-semibold mb-1">Estudiante</p>
+            <p id="migrar-nombre-display" class="text-sm font-medium text-slate-800 dark:text-slate-100"></p>
+            <p id="migrar-curso-display" class="text-[11px] text-blue-700 dark:text-blue-400 mt-1"></p>
+          </div>
+
+          <div>
+            <label for="migrar-curso" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5 uppercase tracking-wide">Seleccionar Nuevo Diplomado</label>
+            <select id="migrar-curso" required class="w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2.5 text-sm text-slate-700 dark:text-white bg-slate-50 dark:bg-slate-700 outline-none focus:border-blue-900 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-900/10 transition cursor-pointer">
+              <option value="" disabled selected class="bg-white dark:bg-slate-700 text-slate-700 dark:text-white">— Elija un programa de la lista —</option>
+              {diplomados.map((curso) => (
+                <option value={curso.id} class="bg-white dark:bg-slate-700 text-slate-700 dark:text-white">{curso.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <p id="migrar-error" aria-live="assertive" class="hidden text-red-600 dark:text-red-400 text-xs font-medium bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2"></p>
+          
+          <button type="submit" id="btn-submit-migrar" class="w-full bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white text-sm font-bold py-2.5 rounded-lg transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-70 disabled:cursor-not-allowed">Ejecutar Migración</button>
+        </form>
+
+      </div>
+    </div>
+ 
+  </main>
+</DashboardLayout>
+ 
+<script is:inline>
+  const getCookie = (name) => {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+  };
+  const token = getCookie('token_sga');
+
+  // Buscador
+  const searchInput = document.getElementById('search-input');
+  const btnSearch = document.getElementById('btn-search');
+  const ejecutarBusqueda = () => {
+    const valor = searchInput.value.trim();
+    window.location.href = valor ? `/students?search=${valor}` : '/students';
+  };
+  btnSearch.addEventListener('click', ejecutarBusqueda);
+  searchInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') ejecutarBusqueda(); });
+ 
+  // Eliminar Estudiante
+  document.querySelectorAll('.btn-eliminar').forEach(boton => {
+    boton.addEventListener('click', async () => {
+      const id = boton.getAttribute('data-id');
+      const name = boton.getAttribute('data-name');
+      if (confirm(`¿Está seguro de que desea eliminar permanentemente al estudiante "${name}"?`)) {
+        try {
+          const response = await fetch(`http://localhost:3000/api/students/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+          if (response.ok) window.location.reload(); else alert('Error al intentar eliminar el registro.');
+        } catch (e) { alert('Error de conexión con el backend.'); }
+      }
+    });
+  });
+ 
+  // Editar Estudiante 
+  const modalEdit = document.getElementById('modal-editar');
+  const modalEditContent = document.getElementById('modal-editar-content');
+  const formEditar = document.getElementById('form-editar');
+  const editError = document.getElementById('edit-error');
+  const btnSubmitEdit = document.getElementById('btn-submit-edit');
+
+  const cerrarModalEdit = () => { 
+    modalEdit.classList.add('hidden'); 
+    modalEdit.classList.remove('flex'); 
+    document.body.style.overflow = '';
+  };
+  
+  document.getElementById('btn-cerrar-edit').addEventListener('click', cerrarModalEdit);
+  document.getElementById('btn-cancelar-edit').addEventListener('click', cerrarModalEdit);
+  
+  // Cerrar al hacer click fuera
+  modalEdit.addEventListener('click', (e) => {
+    if (e.target === modalEdit) cerrarModalEdit();
+  });
+ 
+  document.querySelectorAll('.btn-editar').forEach(boton => {
+    boton.addEventListener('click', () => {
+      editError.classList.add('hidden');
+      const id = boton.getAttribute('data-id');
+      const cedula = boton.getAttribute('data-cedula');
+      const fullName = boton.getAttribute('data-fullname');
+      const email = boton.getAttribute('data-email');
+      const phone = boton.getAttribute('data-phone');
+ 
+      const partes = fullName.split(' ');
+      let pNom = partes[0] || '';
+      let sNom = '';
+      let pApe = '';
+      let sApe = '';
+
+      if (partes.length === 2) { pApe = partes[1]; } 
+      else if (partes.length === 3) { sNom = partes[1]; pApe = partes[2]; } 
+      else if (partes.length >= 4) { sNom = partes[1]; pApe = partes[2]; sApe = partes.slice(3).join(' '); }
+ 
+      document.getElementById('edit-id').value = id;
+      document.getElementById('edit-cedula').value = cedula;
+      document.getElementById('edit-p-nombre').value = pNom;
+      document.getElementById('edit-s-nombre').value = sNom;
+      document.getElementById('edit-p-apellido').value = pApe;
+      document.getElementById('edit-s-apellido').value = sApe;
+      document.getElementById('edit-correo').value = email;
+      document.getElementById('edit-telefono').value = phone;
+ 
+      modalEdit.classList.remove('hidden'); 
+      modalEdit.classList.add('flex');
+      document.body.style.overflow = 'hidden';
+    });
+  });
+ 
+  formEditar.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    btnSubmitEdit.disabled = true;
+    btnSubmitEdit.textContent = 'Actualizando...';
+
+    const id = document.getElementById('edit-id').value;
+    const cedula = document.getElementById('edit-cedula').value.trim();
+    const pNombre = document.getElementById('edit-p-nombre').value.trim();
+    const sNombre = document.getElementById('edit-s-nombre').value.trim();
+    const pApellido = document.getElementById('edit-p-apellido').value.trim();
+    const sApellido = document.getElementById('edit-s-apellido').value.trim();
+    const email = document.getElementById('edit-correo').value.trim();
+    const phone = document.getElementById('edit-telefono').value.trim();
+ 
+    const formatearNombre = (str) => {
+      if (!str) return '';
+      return str.toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+    };
+
+    const regexLetras = /^[a-zA-ZñÑáéíóúÁÉÍÓÚüÜ\s]+$/;
+    const mostrarError = (msg) => {
+      editError.textContent = msg; 
+      editError.classList.remove('hidden');
+      btnSubmitEdit.disabled = false;
+      btnSubmitEdit.textContent = 'Actualizar';
+    };
+
+    if (!regexLetras.test(pNombre) || !regexLetras.test(pApellido)) return mostrarError('⚠️ El primer nombre y primer apellido deben contener solo letras.');
+    if ((sNombre && !regexLetras.test(sNombre)) || (sApellido && !regexLetras.test(sApellido))) return mostrarError('⚠️ El segundo nombre y segundo apellido deben contener solo letras.');
+    if (!/^\d{8}$/.test(cedula)) return mostrarError('⚠️ Cédula inválida. Debe tener 8 dígitos.');
+    if (!/^(0412|0414|0416|0422|0424|0426)\d{7}$/.test(phone)) return mostrarError('⚠️ Formato de teléfono móvil venezolano inválido.');
+
+    const fullNameCombinado = formatearNombre([pNombre, sNombre, pApellido, sApellido].filter(Boolean).join(' '));
+ 
+    try {
+      const response = await fetch(`http://localhost:3000/api/students/${id}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ cedula, fullName: fullNameCombinado, email, phone })
+      });
+      const data = await response.json();
+      if (response.ok) {
+        window.location.reload(); 
+      } else { 
+        mostrarError(data.error || 'Error al actualizar el estudiante'); 
+      }
+    } catch (err) { 
+      mostrarError('Falla de conexión con el servidor.'); 
+    }
+  });
+
+  //  Migrar Estudiante 
+  const modalMigrar = document.getElementById('modal-migrar');
+  const modalMigrarContent = document.getElementById('modal-migrar-content');
+  const formMigrar = document.getElementById('form-migrar');
+  const migrarError = document.getElementById('migrar-error');
+  const btnSubmitMigrar = document.getElementById('btn-submit-migrar');
+
+  const cerrarModalMigrar = () => {
+    modalMigrar.classList.add('hidden'); 
+    modalMigrar.classList.remove('flex');
+    document.body.style.overflow = '';
+  };
+
+  document.getElementById('btn-cerrar-migrar').addEventListener('click', cerrarModalMigrar);
+  
+  modalMigrar.addEventListener('click', (e) => {
+    if (e.target === modalMigrar) cerrarModalMigrar();
+  });
+
+  document.querySelectorAll('.btn-migrar-curso').forEach(boton => {
+    boton.addEventListener('click', () => {
+      migrarError.classList.add('hidden');
+      document.getElementById('migrar-cedula').value = boton.getAttribute('data-cedula');
+      document.getElementById('migrar-nombre-display').textContent = boton.getAttribute('data-name');
+      document.getElementById('migrar-curso-display').textContent = `Actualmente en: ${boton.getAttribute('data-current')}`;
+      
+      modalMigrar.classList.remove('hidden'); 
+      modalMigrar.classList.add('flex');
+      document.body.style.overflow = 'hidden';
+    });
+  });
+
+  formMigrar.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    btnSubmitMigrar.disabled = true;
+    btnSubmitMigrar.textContent = 'Procesando...';
+
+    const cedula = document.getElementById('migrar-cedula').value;
+    const nuevoCourseId = document.getElementById('migrar-curso').value;
+
+    try {
+      const response = await fetch(`http://localhost:3000/api/students/${cedula}/cambiar-diplomado`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ nuevoCourseId })
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        window.location.reload();
+      } else {
+        migrarError.textContent = data.error || 'Error al migrar al estudiante';
+        migrarError.classList.remove('hidden');
+        btnSubmitMigrar.disabled = false;
+        btnSubmitMigrar.textContent = 'Ejecutar Migración';
+      }
+    } catch (err) {
+      migrarError.textContent = 'Falla de conexión con el servidor.';
+      migrarError.classList.remove('hidden');
+      btnSubmitMigrar.disabled = false;
+      btnSubmitMigrar.textContent = 'Ejecutar Migración';
+    }
+  });
+
+  //  CERRAR
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      if (!modalEdit.classList.contains('hidden')) cerrarModalEdit();
+      if (!modalMigrar.classList.contains('hidden')) cerrarModalMigrar();
+    }
+  });
+</script>

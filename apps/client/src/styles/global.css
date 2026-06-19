@@ -1,0 +1,7 @@
+@import "tailwindcss";
+
+@theme {
+  /* Le dice a Tailwind v4 que active las variantes "dark:" 
+     manualmente cuando encuentre la clase .dark en el HTML */
+  --variant-dark: (.dark &);
+}

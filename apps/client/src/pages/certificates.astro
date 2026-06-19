@@ -1,0 +1,308 @@
+---
+import DashboardLayout from '../Layout/DashboardLayout.astro';
+
+const tokenCookie = Astro.cookies.get('token_sga');
+
+if (!tokenCookie) {
+  return Astro.redirect('/');
+}
+
+interface EstudianteAprobado {
+  cedula: string;
+  fullName: string;
+  courseName: string;
+  finalGrade: number | string;
+  fechaAprobacion?: string;
+}
+
+let aprobados: EstudianteAprobado[] = [];
+let correoUsuario = "Administrador";
+
+//  Carga de datos 
+try {
+  const payloadBase64 = tokenCookie.value.split('.')[1];
+  const payloadDecodificado = Buffer.from(payloadBase64, 'base64').toString('utf-8');
+  correoUsuario = JSON.parse(payloadDecodificado).email;
+
+  const response = await fetch('http://localhost:3000/api/enrollments/approved', {
+    method: 'GET',
+    headers: { 'Authorization': `Bearer ${tokenCookie.value}` }
+  });
+
+  if (response.ok) {
+    aprobados = await response.json();
+  } else {
+    console.warn(`Error de la API. Código HTTP: ${response.status}`);
+  }
+} catch (error) {
+  console.error("Falla de red al cargar el listado de certificados:", error);
+}
+---
+
+<DashboardLayout title="Emisión de Certificados" activePage="certificates">
+
+  <script is:inline src="https://unpkg.com/pizzip@3.1.7/dist/pizzip.js"></script>
+  <script is:inline src="https://unpkg.com/docxtemplater@3.43.0/build/docxtemplater.js"></script>
+
+  <header class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-10 px-6 h-14 flex items-center justify-between shrink-0 transition-colors duration-300">      
+    <div class="mr-auto">
+      <h1 class="text-sm font-semibold text-slate-800 dark:text-slate-100 leading-tight">Emisión de Certificados</h1>
+      <p class="text-[11px] text-slate-400 dark:text-slate-400 leading-tight">Credenciales disponibles para alumnos aprobados</p>
+    </div>
+
+    {aprobados.length > 0 && (
+      <span class="flex items-center gap-1.5 text-xs text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/30 border border-green-100 dark:border-green-800/50 px-2.5 py-1 rounded-full font-medium transition-colors" aria-label={`Total aprobados: ${aprobados.length}`}>
+        <span class="w-1.5 h-1.5 bg-green-500 dark:bg-green-400 rounded-full animate-pulse"></span>
+        {aprobados.length} aprobado{aprobados.length !== 1 ? 's' : ''}
+      </span>
+    )}
+
+    <div id="toast-msg" class="hidden ml-4" role="alert" aria-live="assertive"></div>
+  </header>
+
+  <main class="flex-1 p-6 flex flex-col gap-5 overflow-y-auto">
+
+    <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm overflow-hidden transition-colors duration-300">
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left">
+
+          <thead class="bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 dark:border-slate-700">
+            <tr class="text-[11px] font-semibold text-slate-500 dark:text-slate-300 uppercase tracking-wider">
+              <th class="px-5 py-3 w-32">Cédula</th>
+              <th class="px-5 py-3">Estudiante</th>
+              <th class="px-5 py-3">Diplomado Culminado</th>
+              <th class="px-5 py-3 text-center w-24">Nota</th>
+              <th class="px-5 py-3 text-center w-40">Acción</th>
+            </tr>
+          </thead>
+
+          <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+            {aprobados.length === 0 ? (
+              <tr>
+                <td colspan="5" class="py-20 text-center">
+                  <div class="flex flex-col items-center text-slate-300 dark:text-slate-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                      <circle cx="12" cy="8" r="6"/>
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/>
+                    </svg>
+                    <p class="text-sm font-medium text-slate-400 dark:text-slate-400">Aún no hay estudiantes aprobados</p>
+                    <p class="text-xs text-slate-300 dark:text-slate-500 mt-1">Los certificados estarán disponibles cuando haya notas ≥ 10</p>
+                  </div>
+                </td>
+              </tr>
+            ) : (
+              aprobados.map((est) => (
+                <tr class="hover:bg-slate-50/80 dark:hover:bg-slate-700/50 transition-colors">
+
+                  <td class="px-5 py-3.5">
+                    <span class="font-semibold text-slate-700 dark:text-slate-200 text-xs bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded">
+                      V-{est.cedula}
+                    </span>
+                  </td>
+
+                  <td class="px-5 py-3.5">
+                    <div class="flex items-center gap-2.5">
+                      <div class="w-7 h-7 rounded-full bg-blue-900 dark:bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold shrink-0">
+                        {est.fullName.split(' ').map((n: string) => n[0]).join('').slice(0,2).toUpperCase()}
+                      </div>
+                      <span class="font-medium text-slate-800 dark:text-slate-100">{est.fullName}</span>
+                    </div>
+                  </td>
+
+                  <td class="px-5 py-3.5 text-slate-700 dark:text-slate-300 font-medium">
+                    {est.courseName}
+                  </td>
+
+                  <td class="px-5 py-3.5 text-center">
+                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-100 dark:border-green-800/50">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <polyline stroke-linecap="round" stroke-linejoin="round" points="20 6 9 17 4 12"/>
+                      </svg>
+                      {Number(est.finalGrade).toFixed(1)}/20
+                    </span>
+                  </td>
+
+                  <td class="px-5 py-3.5 text-center">
+                    <button
+                      class="btn-generar flex items-center gap-1.5 text-xs font-semibold text-white bg-blue-900 hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-500 active:scale-[0.98] px-3 py-1.5 rounded-lg transition-all shadow-sm mx-auto"
+                      data-cedula={est.cedula}
+                      data-nombre={est.fullName}
+                      data-curso={est.courseName}
+                      data-fecha={est.fechaAprobacion || ''}
+                      aria-label={`Generar certificado para ${est.fullName}`}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                      </svg>
+                      <span>Descargar</span>
+                    </button>
+                  </td>
+
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {aprobados.length > 0 && (
+        <div class="px-5 py-3 border-t border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 transition-colors duration-300">
+          <p class="text-xs text-slate-400 dark:text-slate-400">
+            <span class="font-semibold text-slate-600 dark:text-slate-300">{aprobados.length}</span> certificado{aprobados.length !== 1 ? 's' : ''} disponible{aprobados.length !== 1 ? 's' : ''} para emisión
+          </p>
+        </div>
+      )}
+    </div>
+
+    <p class="text-[11px] text-center text-slate-300 dark:text-slate-500">
+      © {new Date().getFullYear()} Sistema de Gestión Académica — Escuela Nacional de los Derechos Humanos
+    </p>
+
+  </main>
+</DashboardLayout>
+
+<script is:inline>
+  document.addEventListener('DOMContentLoaded', () => {
+
+    const toast = document.getElementById('toast-msg');
+    
+    /**
+     * Muestra una notificación 
+     */
+    const mostrarToast = (mensaje, tipo = 'error') => {
+      toast.textContent = mensaje;
+      const clasesError = 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400 border border-red-200 dark:border-red-800/50';
+      const clasesExito = 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400 border border-green-200 dark:border-green-800/50';
+      
+      toast.className = `ml-auto px-4 py-2 rounded-lg text-sm font-semibold transition-opacity duration-300 ${ tipo === 'exito' ? clasesExito : clasesError }`;
+      toast.classList.remove('hidden');
+      
+      setTimeout(() => { toast.classList.add('hidden'); }, 4000);
+    };
+
+    //  diccionarios para fechas
+    const DIAS_LETRAS = [
+      'cero', 'un', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve', 'diez', 
+      'once', 'doce', 'trece', 'catorce', 'quince', 'dieciséis', 'diecisiete', 'dieciocho', 'diecinueve', 
+      'veinte', 'veintiún', 'veintidós', 'veintitrés', 'veinticuatro', 'veinticinco', 'veintiséis', 
+      'veintisiete', 'veintiocho', 'veintinueve', 'treinta', 'treinta y un'
+    ];
+    
+    const ANIOS_LETRAS = {
+      2024: 'dos mil veinticuatro', 2025: 'dos mil veinticinco', 2026: 'dos mil veintiséis',
+      2027: 'dos mil veintisiete', 2028: 'dos mil veintiocho', 2029: 'dos mil veintinueve', 2030: 'dos mil treinta'
+    };
+
+    const MESES = [
+      'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 
+      'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'
+    ];
+
+    /**
+     * Helper puro para convertir fechas crudas a texto legal venezolano.
+     */
+    const generarTextoExpedicion = (fechaRaw) => {
+      const fechaObj = fechaRaw ? new Date(fechaRaw) : new Date();
+      const dia = fechaObj.getDate();
+      const mes = MESES[fechaObj.getMonth()];
+      const anio = fechaObj.getFullYear();
+      
+      const diaLetra = DIAS_LETRAS[dia] || dia;
+      const anioLetra = ANIOS_LETRAS[anio] || anio;
+      
+      const textoLegal = `Expedido en Caracas, a los ${diaLetra} (${dia}) días del mes de ${mes} del ${anioLetra} (${anio})`;
+      const fechaCorta = `${String(dia).padStart(2, '0')}-${String(fechaObj.getMonth() + 1).padStart(2, '0')}-${anio}`;
+
+      return { textoLegal, fechaCorta };
+    };
+
+    document.querySelectorAll('.btn-generar').forEach(boton => {
+      boton.addEventListener('click', async (e) => {
+        const btn = e.currentTarget;
+        
+        // Extracción de datos del DOM
+        const { cedula, nombre, curso, fecha } = btn.dataset;
+        const { textoLegal, fechaCorta } = generarTextoExpedicion(fecha);
+
+        //  Estado de carga visual (Spinner)
+        const htmlOriginal = btn.innerHTML;
+        btn.innerHTML = `
+          <svg class="animate-spin h-3.5 w-3.5 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          Procesando
+        `;
+        btn.classList.add('opacity-75', 'cursor-not-allowed');
+        btn.disabled = true;
+
+        try {
+          // Descarga de la plantilla esquivando la caché del navegador
+          const timestamp = new Date().getTime();
+          const response = await fetch(`/plantillas/certificado.docx?v=${timestamp}`);
+          
+          if (!response.ok) {
+             throw new Error('La plantilla base "certificado.docx" no fue encontrada en la carpeta /public/plantillas.');
+          }
+          
+          const arrayBuffer = await response.arrayBuffer();
+
+          // Validación de librerías globales
+          const PizZipGlobal = window.PizZip;
+          const DocxGlobal = window.docxtemplater;
+
+          if (!PizZipGlobal || !DocxGlobal) {
+             throw new Error("Librerías de renderizado offline. Verifique su conexión a internet para descargar docxtemplater.");
+          }
+
+          //  Inicialización y Renderizado del Documento
+          const zip = new PizZipGlobal(arrayBuffer);
+          const doc = new DocxGlobal(zip, {
+            paragraphLoop: true,
+            linebreaks: true,
+          });
+
+          // Inyección de variables mapeadas con el archivo .docx
+          doc.render({
+            nombre: nombre,
+            cedula: cedula,
+            curso: curso,
+            expedicion: textoLegal,
+            fecha_registro: fechaCorta
+          });
+
+          //   Descarga del archivo .docx
+          const blobSalida = doc.getZip().generate({
+            type: "blob",
+            mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          });
+
+          const sanitizedName = nombre.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s]/g, '').replace(/\s+/g, '_');
+          const url = window.URL.createObjectURL(blobSalida);
+          
+          const enlaceDescarga = document.createElement('a');
+          enlaceDescarga.href = url;
+          enlaceDescarga.download = `Certificado_V-${cedula}_${sanitizedName}.docx`;
+          
+          document.body.appendChild(enlaceDescarga);
+          enlaceDescarga.click();
+          
+          // Limpieza de memoria
+          document.body.removeChild(enlaceDescarga);
+          window.URL.revokeObjectURL(url);
+          
+          mostrarToast(`Certificado de ${nombre} descargado exitosamente.`, 'exito');
+
+        } catch (error) {
+          console.error("Falla de generación DOCX:", error);
+          mostrarToast(`Error: ${error.message}`);
+        } finally {
+          //  Restauración segura de la UI
+          btn.innerHTML = htmlOriginal;
+          btn.classList.remove('opacity-75', 'cursor-not-allowed');
+          btn.disabled = false;
+        }
+      });
+    });
+  });
+</script>

@@ -1,0 +1,80 @@
+---
+import Sidebar from '../components/navigation/sidebar.astro';
+import '../styles/global.css';
+
+const { title, activePage } = Astro.props;
+
+// Protección de Rutas por Cookies (Server-Side)
+const tokenCookie = Astro.cookies.get('token_sga');
+if (!tokenCookie) {
+  return Astro.redirect('/');
+}
+---
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{title} | SGA ENADDHH</title>
+  
+  <script is:inline src="https://cdn.tailwindcss.com"></script>
+  
+  <script is:inline>
+    tailwind.config = {
+      darkMode: 'class'
+    }
+  </script>
+
+  <script is:inline src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <script is:inline>
+    // Se ejecuta inmediatamente antes de pintar el cuerpo de la página
+    if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  </script>
+</head>
+
+<body class="bg-slate-50 dark:bg-slate-900 min-h-screen flex flex-col md:flex-row text-slate-800 dark:text-slate-100 transition-colors duration-300">  
+  <Sidebar activePage={activePage} />
+
+  <div class="flex-1 flex flex-col min-h-screen min-w-0 relative">
+    <slot />
+    
+    <div class="fixed bottom-5 right-6 z-50 flex items-center gap-2.5 bg-white/80 dark:bg-slate-800/80 backdrop-blur-md px-4 py-2 rounded-full border border-slate-200/50 dark:border-slate-700/50 shadow-lg">
+      <div class="relative flex items-center justify-center">
+        <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400 opacity-20"></span>
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-blue-900 dark:text-blue-400 relative" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      </div>
+      <div class="flex flex-col">
+        <span class="text-[9px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 leading-none mb-0.5">Hora Legal de Vzla</span>
+        <span id="reloj-venezuela" class="text-sm font-black text-slate-800 dark:text-slate-100 leading-none tracking-wide">
+          Cargando...
+        </span>
+      </div>
+    </div>
+
+  </div>
+
+  <script is:inline>
+  setInterval(() => {
+    const relojElemento = document.getElementById('reloj-venezuela');
+    if (relojElemento) {
+      // Configuración estricta para la hora local
+      relojElemento.textContent = new Date().toLocaleTimeString("es-VE", {
+        timeZone: "America/Caracas",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: true
+      });
+    }
+  }, 1000);
+  </script>
+
+</body>
+</html>

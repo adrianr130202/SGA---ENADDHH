@@ -1,0 +1,504 @@
+---
+import DashboardLayout from '../Layout/DashboardLayout.astro';
+ 
+const tokenCookie = Astro.cookies.get('token_sga');
+if (!tokenCookie) {
+  return Astro.redirect('/');
+}
+ 
+let diplomados: any[] = [];
+let correoUsuario = "Administrador";
+ 
+try {
+  const payloadBase64 = tokenCookie.value.split('.')[1];
+  const payloadDecodificado = Buffer.from(payloadBase64, 'base64').toString('utf-8');
+  correoUsuario = JSON.parse(payloadDecodificado).email;
+ 
+  const response = await fetch('http://localhost:3000/api/courses', {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${tokenCookie.value}`
+    }
+  });
+ 
+  if (response.ok) {
+    diplomados = await response.json();
+  }
+} catch (error) {
+  console.error("Error cargando los diplomados en el servidor de Astro:", error);
+}
+---
+ 
+<DashboardLayout title="Oferta Académica" activePage="courses">
+ 
+  <header class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-10 px-6 h-14 flex items-center justify-between gap-4 shrink-0 transition-colors duration-300">      
+    <div>
+      <h1 class="text-sm font-semibold text-slate-800 dark:text-slate-100 leading-tight">Oferta Académica</h1>
+      <p class="text-[11px] text-slate-400 dark:text-slate-400 leading-tight">Programas de formación activos en la institución</p>
+    </div>
+ 
+    <button
+      id="btn-nuevo-curso"
+      aria-label="Abrir formulario para crear un nuevo diplomado"
+      class="flex items-center gap-2 bg-blue-900 hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-500 active:scale-[0.98] text-white text-xs font-semibold px-4 py-2 rounded-lg shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>
+      Nuevo Diplomado
+    </button>
+  </header>
+ 
+  <main class="flex-1 p-6 overflow-y-auto">
+ 
+    {diplomados.length === 0 ? (
+      <div class="flex flex-col items-center justify-center py-24 text-slate-300 dark:text-slate-600">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+          <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+        </svg>
+        <p class="text-sm font-medium text-slate-400 dark:text-slate-400">No hay diplomados cargados en el sistema</p>
+        <p class="text-xs text-slate-300 dark:text-slate-500 mt-1">Usa el botón "Nuevo Diplomado" para agregar el primero</p>
+      </div>
+    ) : (
+ 
+      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5" aria-label="Lista de diplomados">
+        {diplomados.map((curso) => (
+          <article class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm flex flex-col hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
+ 
+            <div class="px-5 pt-5 pb-4">
+              <div class="flex items-start justify-between mb-3">
+                <span class="inline-flex items-center gap-1.5 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-[11px] font-semibold px-2.5 py-1 rounded-full border border-green-100 dark:border-green-800/50">
+                  <span class="w-1.5 h-1.5 bg-green-500 dark:bg-green-400 rounded-full" aria-hidden="true"></span>
+                  Activo
+                </span>
+                <span class="text-[10px] text-slate-400 dark:text-slate-400 font-medium bg-slate-50 dark:bg-slate-700 px-2 py-1 rounded-md border border-slate-100 dark:border-slate-600">
+                  ENADDHH-{curso.id.toString().padStart(3, '0')}
+                </span>
+              </div>
+ 
+              <div class="flex items-start gap-3 mb-3">
+                <div class="w-9 h-9 bg-blue-50 dark:bg-slate-700 rounded-lg flex items-center justify-center shrink-0 mt-0.5 transition-colors" aria-hidden="true">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-800 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                  </svg>
+                </div>
+                <h2 class="text-sm font-semibold text-slate-800 dark:text-slate-100 leading-snug">{curso.name}</h2>
+              </div>
+ 
+              <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                {curso.description || 'Programa de formación especializada avalado por la Escuela Nacional de Derechos Humanos.'}
+              </p>
+              
+              <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700/50 flex items-center gap-2">
+                <div class="flex gap-1" aria-hidden="true">
+                  <div class="w-1.5 h-3 bg-blue-900/40 dark:bg-blue-500/40 rounded-sm"></div>
+                  <div class="w-1.5 h-4 bg-blue-900/60 dark:bg-blue-500/60 rounded-sm"></div>
+                  <div class="w-1.5 h-5 bg-blue-900/80 dark:bg-blue-500/80 rounded-sm"></div>
+                  <div class="w-1.5 h-6 bg-blue-900 dark:bg-blue-500 rounded-sm"></div>
+                </div>
+                <span class="text-[11px] font-semibold text-slate-600 dark:text-slate-300">
+                  4 Módulos Evaluativos
+                </span>
+              </div>
+            </div>
+ 
+            <div class="mt-auto px-4 py-3 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between gap-2">
+              <div class="flex items-center gap-2">
+                <button
+                  aria-label={`Editar diplomado ${curso.name}`}
+                  class="btn-editar-curso flex items-center gap-1.5 text-[11px] font-bold text-amber-600 dark:text-amber-500 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-slate-700 px-2.5 py-1.5 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  data-id={curso.id}
+                  data-name={curso.name}
+                  data-desc={curso.description || ''}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                    <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                  </svg>
+                  Editar
+                </button>
+                
+                <button
+                  aria-label={`Eliminar diplomado ${curso.name}`}
+                  class="btn-eliminar-curso flex items-center gap-1.5 text-[11px] font-bold text-red-600 dark:text-red-400 hover:text-red-700 hover:bg-red-50 dark:hover:bg-slate-700 px-2.5 py-1.5 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500"
+                  data-id={curso.id}
+                  data-name={curso.name}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                    <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/>
+                  </svg>
+                  Eliminar
+                </button>
+              </div>
+ 
+              <button
+                aria-label={`Ver alumnos del diplomado ${curso.name}`}
+                class="btn-ver-alumnos flex items-center gap-1.5 text-[11px] font-bold text-blue-900 dark:text-blue-400 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-slate-700 px-2.5 py-1.5 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+                data-id={curso.id}
+                data-name={curso.name}
+              >
+                Ver alumnos
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                  <polyline points="9 18 15 12 9 6"/>
+                </svg>
+              </button>
+            </div>
+ 
+          </article>
+        ))}
+      </div>
+    )}
+ 
+    <footer class="mt-10 text-[11px] text-center text-slate-300 dark:text-slate-500">
+      <p>© 2026 Sistema de Gestión Académica — Escuela Nacional de los Derechos Humanos</p>
+    </footer>
+ 
+    <div id="modal-curso" role="dialog" aria-labelledby="modal-curso-titulo" aria-modal="true" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 items-center justify-center p-4 transition-opacity">
+      <div id="modal-curso-content" class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md relative overflow-hidden transition-colors duration-300">
+ 
+        <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+          <div>
+            <h2 id="modal-curso-titulo" class="text-base font-bold text-slate-800 dark:text-white">Nuevo Diplomado</h2>
+            <p class="text-xs text-slate-400 mt-0.5">Complete la información del programa</p>
+          </div>
+          <button type="button" aria-label="Cerrar modal" class="btn-cerrar-curso w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-slate-700 transition-colors text-lg font-bold focus:outline-none focus:ring-2 focus:ring-red-500">
+            &times;
+          </button>
+        </div>
+ 
+        <form id="form-curso" class="px-6 py-5 space-y-4">
+          <input type="hidden" id="curso-id">
+ 
+          <div>
+            <label for="curso-nombre" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5 uppercase tracking-wide">
+              Nombre del Diplomado
+            </label>
+            <input
+              type="text" id="curso-nombre" required
+              placeholder="Ej: Derechos Civiles y Políticos"
+              class="w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2.5 text-sm text-slate-700 dark:text-white bg-slate-50 dark:bg-slate-700 outline-none focus:border-blue-900 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-900/10 transition placeholder-slate-400 dark:placeholder-slate-400"
+            />
+          </div>
+ 
+          <div>
+            <label for="curso-desc" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5 uppercase tracking-wide">
+              Descripción Breve
+            </label>
+            <textarea
+              id="curso-desc" rows="3"
+              placeholder="Opcional..."
+              class="w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2.5 text-sm text-slate-700 dark:text-white bg-slate-50 dark:bg-slate-700 outline-none focus:border-blue-900 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-900/10 transition placeholder-slate-400 dark:placeholder-slate-400 resize-none"
+            ></textarea>
+          </div>
+ 
+          <p id="curso-error" aria-live="assertive" class="hidden text-red-600 dark:text-red-400 text-xs font-medium bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2"></p>
+ 
+          <div class="flex gap-3 pt-1">
+            <button type="button" class="btn-cerrar-curso flex-1 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 py-2.5 rounded-lg text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400">
+              Cancelar
+            </button>
+            <button type="submit" id="btn-submit-curso" class="flex-1 bg-blue-900 hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-500 text-white py-2.5 rounded-lg text-sm font-bold transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-70 disabled:cursor-not-allowed">
+              Guardar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+ 
+    <div id="modal-alumnos" role="dialog" aria-labelledby="titulo-alumnos-curso" aria-modal="true" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 items-center justify-center p-4 transition-opacity">
+      <div id="modal-alumnos-content" class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[80vh] overflow-hidden transition-colors duration-300">
+ 
+        <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex items-start justify-between shrink-0">
+          <div>
+            <h2 id="titulo-alumnos-curso" class="text-base font-bold text-slate-800 dark:text-white">Cargando...</h2>
+            <p class="text-xs text-slate-400 mt-0.5">Lista de estudiantes matriculados</p>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <button type="button" id="btn-descargar-excel" aria-label="Descargar lista en formato Excel" class="hidden items-center gap-1.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 active:scale-[0.98] px-3 py-1.5 rounded-lg transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+              </svg>
+              Descargar Excel
+            </button>
+            <button type="button" id="btn-cerrar-alumnos" aria-label="Cerrar lista de alumnos" class="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-slate-700 transition-colors text-lg font-bold shrink-0 focus:outline-none focus:ring-2 focus:ring-red-500">
+              &times;
+            </button>
+          </div>
+        </div>
+ 
+        <div class="overflow-y-auto flex-1">
+          <table class="w-full text-sm text-left">
+            <thead class="bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 dark:border-slate-700 sticky top-0">
+              <tr class="text-[11px] font-semibold text-slate-500 dark:text-slate-300 uppercase tracking-wider">
+                <th scope="col" class="px-5 py-3">Cédula</th>
+                <th scope="col" class="px-5 py-3">Nombre Completo</th>
+                <th scope="col" class="px-5 py-3">Correo</th>
+              </tr>
+            </thead>
+            <tbody id="tabla-cuerpo-alumnos" class="divide-y divide-slate-100 dark:divide-slate-700"></tbody>
+          </table>
+        </div>
+ 
+      </div>
+    </div>
+ 
+  </main>
+</DashboardLayout>
+ 
+<script is:inline src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+ 
+<script is:inline>
+  const getCookie = (name) => {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+  };
+  const token = getCookie('token_sga');
+ 
+  // --- LÓGICA MODAL CURSO ---
+  const modalCurso = document.getElementById('modal-curso');
+  const modalCursoContent = document.getElementById('modal-curso-content');
+  const formCurso = document.getElementById('form-curso');
+  const tituloCurso = document.getElementById('modal-curso-titulo');
+  const msgError = document.getElementById('curso-error');
+  const btnSubmitCurso = document.getElementById('btn-submit-curso');
+ 
+  const toggleModalCurso = () => {
+    const isHidden = modalCurso.classList.contains('hidden');
+    if (isHidden) {
+      modalCurso.classList.remove('hidden');
+      modalCurso.classList.add('flex');
+      document.body.style.overflow = 'hidden'; // Bloquear scroll de fondo
+    } else {
+      modalCurso.classList.add('hidden');
+      modalCurso.classList.remove('flex');
+      msgError.classList.add('hidden');
+      document.body.style.overflow = ''; // Restaurar scroll
+    }
+  };
+ 
+  document.getElementById('btn-nuevo-curso').addEventListener('click', () => {
+    formCurso.reset();
+    document.getElementById('curso-id').value = '';
+    tituloCurso.textContent = 'Nuevo Diplomado';
+    toggleModalCurso();
+  });
+ 
+  document.querySelectorAll('.btn-cerrar-curso').forEach(btn => btn.addEventListener('click', toggleModalCurso));
+  
+  // Cerrar modal de curso clicando fuera
+  modalCurso.addEventListener('click', (e) => {
+    if (e.target === modalCurso) toggleModalCurso();
+  });
+ 
+  document.querySelectorAll('.btn-editar-curso').forEach(boton => {
+    boton.addEventListener('click', () => {
+      document.getElementById('curso-id').value = boton.getAttribute('data-id');
+      document.getElementById('curso-nombre').value = boton.getAttribute('data-name');
+      document.getElementById('curso-desc').value = boton.getAttribute('data-desc');
+      tituloCurso.textContent = 'Editar Diplomado';
+      toggleModalCurso();
+    });
+  });
+
+  // Cerrar modales con Escape
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      if (!modalCurso.classList.contains('hidden')) toggleModalCurso();
+      if (!modalAlumnos.classList.contains('hidden')) toggleModalAlumnos();
+    }
+  });
+
+  // ── ELIMINAR CURSO (Soft Delete) ──────────
+  document.querySelectorAll('.btn-eliminar-curso').forEach(boton => {
+    boton.addEventListener('click', async () => {
+      const id = boton.getAttribute('data-id');
+      const name = boton.getAttribute('data-name');
+      
+      if (confirm(`¿Estás seguro de que deseas eliminar el diplomado "${name}"?\nEsta acción lo ocultará del sistema.`)) {
+        try {
+          const res = await fetch(`http://localhost:3000/api/courses/${id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          
+          if (res.ok) {
+            window.location.reload();
+          } else {
+            const errorData = await res.json();
+            alert(errorData.error || 'Error al intentar eliminar el diplomado.');
+          }
+        } catch (err) {
+          alert('Falla de conexión con el servidor.');
+        }
+      }
+    });
+  });
+ 
+  // ── GUARDAR / EDITAR CURSO ──────────
+  formCurso.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    btnSubmitCurso.disabled = true;
+    btnSubmitCurso.textContent = 'Guardando...';
+    msgError.classList.add('hidden');
+
+    const id = document.getElementById('curso-id').value;
+    const name = document.getElementById('curso-nombre').value.trim();
+    const description = document.getElementById('curso-desc').value.trim();
+ 
+    const url = id ? `http://localhost:3000/api/courses/${id}` : 'http://localhost:3000/api/courses';
+    const method = id ? 'PUT' : 'POST';
+ 
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ name, description })
+      });
+      
+      if (res.ok) {
+        window.location.reload();
+      } else {
+        const errorData = await res.json();
+        msgError.textContent = errorData.error || 'Error al procesar la solicitud.';
+        msgError.classList.remove('hidden');
+        btnSubmitCurso.disabled = false;
+        btnSubmitCurso.textContent = 'Guardar';
+      }
+    } catch (err) {
+      msgError.textContent = 'Error de conexión con el servidor.';
+      msgError.classList.remove('hidden');
+      btnSubmitCurso.disabled = false;
+      btnSubmitCurso.textContent = 'Guardar';
+    }
+  });
+ 
+  // --- LÓGICA MODAL ALUMNOS ---
+  const modalAlumnos = document.getElementById('modal-alumnos');
+  const tablaAlumnos = document.getElementById('tabla-cuerpo-alumnos');
+  const tituloAlumnos = document.getElementById('titulo-alumnos-curso');
+  const btnDescargarExcel = document.getElementById('btn-descargar-excel');
+ 
+  let estudiantesActuales = [];
+  let nombreDiplomadoActual = '';
+ 
+  const toggleModalAlumnos = () => {
+    const isHidden = modalAlumnos.classList.contains('hidden');
+    if (isHidden) {
+      modalAlumnos.classList.remove('hidden');
+      modalAlumnos.classList.add('flex');
+      document.body.style.overflow = 'hidden';
+    } else {
+      modalAlumnos.classList.add('hidden');
+      modalAlumnos.classList.remove('flex');
+      btnDescargarExcel.classList.add('hidden');
+      btnDescargarExcel.classList.remove('flex');
+      document.body.style.overflow = '';
+    }
+  };
+
+  document.getElementById('btn-cerrar-alumnos').addEventListener('click', toggleModalAlumnos);
+  
+  // Cerrar modal de alumnos clicando fuera
+  modalAlumnos.addEventListener('click', (e) => {
+    if (e.target === modalAlumnos) toggleModalAlumnos();
+  });
+ 
+  // ── DESCARGA CON PLANTILLA INSTITUCIONAL ──────────
+  btnDescargarExcel.addEventListener('click', async () => {
+    if (estudiantesActuales.length === 0) return;
+
+    try {
+      const textoOriginal = btnDescargarExcel.innerHTML;
+      btnDescargarExcel.innerHTML = '⏳ Generando formato oficial...';
+      btnDescargarExcel.classList.add('opacity-75', 'cursor-not-allowed');
+
+      const response = await fetch('/plantillas/lista.xlsx');
+      if (!response.ok) throw new Error('No se encontró la plantilla.');
+      const arrayBuffer = await response.arrayBuffer();
+
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(arrayBuffer);
+      const worksheet = workbook.worksheets[0]; 
+
+      worksheet.getCell('B2').value = `Nombre de Actividad: ${nombreDiplomadoActual}`;
+      
+      let filaInicio = 8; 
+      
+      estudiantesActuales.forEach((est, index) => {
+        const filaActual = filaInicio + index;
+        worksheet.getCell(`A${filaActual}`).value = index + 1;
+        worksheet.getCell(`B${filaActual}`).value = est.fullName;
+        worksheet.getCell(`C${filaActual}`).value = 'V-' + est.cedula;
+        worksheet.getCell(`D${filaActual}`).value = est.phone || '';
+        worksheet.getCell(`E${filaActual}`).value = est.email;
+      });
+
+      const bufferSalida = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([bufferSalida], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      
+      const sanitized = nombreDiplomadoActual.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s]/g, '').replace(/\s+/g, '_').slice(0, 50);
+      const url = window.URL.createObjectURL(blob);
+      const enlaceDescarga = document.createElement('a');
+      enlaceDescarga.href = url;
+      enlaceDescarga.download = `Asistencia_Presencial_${sanitized}.xlsx`;
+      document.body.appendChild(enlaceDescarga);
+      enlaceDescarga.click();
+      
+      document.body.removeChild(enlaceDescarga);
+      window.URL.revokeObjectURL(url);
+
+      btnDescargarExcel.innerHTML = textoOriginal;
+      btnDescargarExcel.classList.remove('opacity-75', 'cursor-not-allowed');
+
+   } catch (error) {
+      console.error("🔥 ERROR REAL DE EXCELJS:", error);
+      alert(`Ocurrió esto: ${error.message} (Presiona F12 y ve a la pestaña 'Consola' para ver el detalle)`);
+      
+      btnDescargarExcel.innerHTML = 'Descargar Excel';
+      btnDescargarExcel.classList.remove('opacity-75', 'cursor-not-allowed');
+    }
+  });
+
+  // ── MOSTRAR MODAL Y CARGAR ALUMNOS ──────────
+  document.querySelectorAll('.btn-ver-alumnos').forEach(boton => {
+    boton.addEventListener('click', async () => {
+      const id = boton.getAttribute('data-id');
+      const name = boton.getAttribute('data-name');
+      
+      nombreDiplomadoActual = name;
+      tituloAlumnos.textContent = `Estudiantes en: ${name}`;
+      tablaAlumnos.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-slate-400 dark:text-slate-500">Cargando estudiantes...</td></tr>`;
+      
+      toggleModalAlumnos();
+
+      try {
+        const res = await fetch(`http://localhost:3000/api/courses/${id}/students`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const estudiantes = await res.json();
+        estudiantesActuales = estudiantes;
+
+        if (estudiantes.length === 0) {
+          tablaAlumnos.innerHTML = `<tr><td colspan="3" class="p-8 text-center text-slate-500 dark:text-slate-400 font-medium">Aún no hay inscripciones para este diplomado.</td></tr>`;
+          btnDescargarExcel.classList.add('hidden');
+          btnDescargarExcel.classList.remove('flex');
+        } else {
+          tablaAlumnos.innerHTML = estudiantes.map(est => `
+            <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+              <td class="px-5 py-3 font-medium text-slate-700 dark:text-slate-200">V-${est.cedula}</td>
+              <td class="px-5 py-3 text-slate-800 dark:text-slate-100 font-medium">${est.fullName}</td>
+              <td class="px-5 py-3 text-slate-500 dark:text-slate-400 text-xs">${est.email}</td>
+            </tr>
+          `).join('');
+          
+          btnDescargarExcel.classList.remove('hidden');
+          btnDescargarExcel.classList.add('flex');
+        }
+      } catch (error) {
+        tablaAlumnos.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-red-500 dark:text-red-400">Error de conexión al cargar datos.</td></tr>`;
+        btnDescargarExcel.classList.add('hidden');
+        btnDescargarExcel.classList.remove('flex');
+      }
+    });
+  });
+</script>
