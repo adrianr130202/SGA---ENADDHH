@@ -1,10 +1,11 @@
 import 'dotenv/config';
 import express from 'express';
 import { ZodError } from 'zod';
-import { SqliteError } from 'better-sqlite3';
 import jwt from 'jsonwebtoken';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 import userRouter from './features/user/user.routes.js';
 import authRouter from './features/auth/auth.routes.js';
@@ -13,10 +14,13 @@ import { authenticate } from './features/auth/auth.middlewares.js';
 import courseRouter from './features/course/course.routes.js';
 import enrollmentRouter from './features/enrollments/enrollment.routes.js';
 
-
+//  Configuración  rutas  del servidor
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
-const port = 3000;
+//  El puerto ahora se adapta a Render automáticamente
+const port = process.env.PORT || 3000; 
 
 // Configuración global (Middlewares)
 app.use(cors({ 
@@ -25,13 +29,26 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(cookieParser());
+
+// Rutas de la API (Backend)
 app.use('/api/user', userRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/students', authenticate, studentRouter);
 app.use('/api/courses', authenticate, courseRouter); 
 app.use('/api/enrollments', enrollmentRouter);
 
+const clientAssetsPath = path.join(__dirname, '../client/dist/client');
+app.use(express.static(clientAssetsPath));
 
+try {
+  const { handler: ssrHandler } = await import('../client/dist/server/entry.mjs');
+  app.use(ssrHandler);
+} catch (error) {
+  console.log('⚠️ Aviso local: Build de Astro no encontrado. Se necesita ejecutar "npm run build -w client".');
+}
+// =====================================================================
+
+// Manejador de Errores Global
 app.use((err, req, res, _next) => {
   let errorString = 'Desconocido';
   let errorCode = 500;
@@ -45,13 +62,10 @@ app.use((err, req, res, _next) => {
     errorCode = 400;
   }
 
-  // Error de Base de Datos (SQLite)
-  if (err instanceof SqliteError) {
-    if (err.code === 'SQLITE_CONSTRAINT_UNIQUE') {
-      const property = err.message.split('.')[1];
-      errorCode = 400;
-      errorString = `${property.toUpperCase()} ya se encuentra en uso.`;
-    }
+  // Error de Base de Datos PostgreSQL (Supabase)
+  if (err.code === '23505') { 
+    errorCode = 400;
+    errorString = `Este registro ya existe y se encuentra en uso.`;
   }
 
   // Errores de Seguridad (Tokens)
@@ -68,7 +82,7 @@ app.use((err, req, res, _next) => {
 });
 
 app.listen(port, () => {
-  console.log(`SGA-ENADDHH corriendo en http://localhost:${port}`);
+  console.log(`Sistema  SGA-ENADDHH corriendo en el puerto ${port}`);
 });
 
 export default app;
