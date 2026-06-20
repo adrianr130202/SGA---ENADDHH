@@ -24,7 +24,7 @@ const port = process.env.PORT || 3000;
 
 // Configuración global (Middlewares)
 app.use(cors({ 
-  origin: ['http://localhost:4321', 'http://127.0.0.1:4321', 'https://sga-enaddhh.onrender.com'],
+  origin: true,
   credentials: true 
 }));
 app.use(express.json());
