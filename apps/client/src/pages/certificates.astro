@@ -24,7 +24,7 @@ try {
   const payloadDecodificado = Buffer.from(payloadBase64, 'base64').toString('utf-8');
   correoUsuario = JSON.parse(payloadDecodificado).email;
 
-  const response = await fetch('https://sga-backend-api.onrender.com/api/enrollments/approved', {
+  const response = await fetch('https://sga-enaddhh.onrender.com/api/enrollments/approved', {
     method: 'GET',
     headers: { 'Authorization': `Bearer ${tokenCookie.value}` }
   });

@@ -18,12 +18,12 @@ try {
   const payloadDecodificado = Buffer.from(payloadBase64, 'base64').toString('utf-8');
   correoUsuario = JSON.parse(payloadDecodificado).email;
  
-  const coursesResponse = await fetch('https://sga-backend-api.onrender.com/api/courses', {
+  const coursesResponse = await fetch('https://sga-enaddhh.onrender.com/api/courses', {
     headers: { 'Authorization': `Bearer ${tokenCookie.value}` }
   });
   if (coursesResponse.ok) diplomados = await coursesResponse.json();
  
-  const statsResponse = await fetch('https://sga-backend-api.onrender.com/api/students/estadisticas', {
+  const statsResponse = await fetch('https://sga-enaddhh.onrender.com/api/students/estadisticas', {
     headers: { 'Authorization': `Bearer ${tokenCookie.value}` }
   });
   if (statsResponse.ok) {
@@ -480,7 +480,7 @@ try {
       const fullName = formatearNombre(arregloNombres.join(' '));
 
       try {
-        const res = await fetch('https://sga-backend-api.onrender.com/api/students', {
+        const res = await fetch('https://sga-enaddhh.onrender.com/api/students', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
           body: JSON.stringify({ cedula, fullName, email, phone, courseId: parseInt(courseId) })

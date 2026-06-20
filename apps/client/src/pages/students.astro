@@ -19,7 +19,7 @@ try {
   correoUsuario = JSON.parse(payloadDecodificado).email;
  
   // Buscar Estudiantes
-  const apiUrl = `https://sga-backend-api.onrender.com/api/students${searchParam ? `?search=${searchParam}` : ''}`;
+  const apiUrl = `https://sga-enaddhh.onrender.com/api/students${searchParam ? `?search=${searchParam}` : ''}`;
   const response = await fetch(apiUrl, {
     method: 'GET',
     headers: { 'Authorization': `Bearer ${tokenCookie.value}` }
@@ -27,7 +27,7 @@ try {
   if (response.ok) estudiantes = await response.json();
 
   // Buscar Diplomados para el cambio
-  const coursesResponse = await fetch('https://sga-backend-api.onrender.com/api/courses', {
+  const coursesResponse = await fetch('https://sga-enaddhh.onrender.com/api/courses', {
     headers: { 'Authorization': `Bearer ${tokenCookie.value}` }
   });
   if (coursesResponse.ok) diplomados = await coursesResponse.json();
@@ -370,7 +370,7 @@ try {
       const name = boton.getAttribute('data-name');
       if (confirm(`¿Está seguro de que desea eliminar permanentemente al estudiante "${name}"?`)) {
         try {
-          const response = await fetch(`https://sga-backend-api.onrender.com/api/students/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+          const response = await fetch(`https://sga-enaddhh.onrender.com/api/students/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
           if (response.ok) window.location.reload(); else alert('Error al intentar eliminar el registro.');
         } catch (e) { alert('Error de conexión con el backend.'); }
       }
@@ -468,7 +468,7 @@ try {
     const fullNameCombinado = formatearNombre([pNombre, sNombre, pApellido, sApellido].filter(Boolean).join(' '));
  
     try {
-      const response = await fetch(`https://sga-backend-api.onrender.com/api/students/${id}`, {
+      const response = await fetch(`https://sga-enaddhh.onrender.com/api/students/${id}`, {
         method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ cedula, fullName: fullNameCombinado, email, phone })
       });
@@ -525,7 +525,7 @@ try {
     const nuevoCourseId = document.getElementById('migrar-curso').value;
 
     try {
-      const response = await fetch(`https://sga-backend-api.onrender.com/api/students/${cedula}/cambiar-diplomado`, {
+      const response = await fetch(`https://sga-enaddhh.onrender.com/api/students/${cedula}/cambiar-diplomado`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ nuevoCourseId })
